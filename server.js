@@ -1,6 +1,6 @@
 const express = require("express");
 const bodyParser = require('body-parser');
-// const dotenv = require('dotenv')
+const bcrypt = require('bcryptjs');
 const app = express();
 
 app.use(bodyParser.json({external: false}))
@@ -32,6 +32,13 @@ app.get('/', (req, res) => {
 
 
 app.post('/signIn', (req, res) => {
+    bcrypt.compare('apples', "$2a$10$F9ML4XSQTHE38ZXrJNuq7eyTAazvqS3iZ7OzbEcqUXM0SQmfcwgmO", function(err, res) {
+        if (res) {
+         console.log(res)
+        } else {
+         console.log("Enter correct password")
+        }
+      });
     if(req.body.email === database.users[0].email && req.body.password === database.users[0].password){
         res.json('Success')
     }else{
@@ -41,6 +48,9 @@ app.post('/signIn', (req, res) => {
 
 app.post('/register', (req, res) => {
     const {name, email, password} = req.body
+    bcrypt.hash(password, 10, function(err, hash) {
+        console.log(hash)
+      });
     database.users.push({
             id: '123456',
             name: name,
