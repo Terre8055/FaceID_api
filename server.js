@@ -1,11 +1,15 @@
 const express = require("express");
 const bodyParser = require('body-parser');
 const bcrypt = require('bcryptjs');
+const cors = require("cors");
 const app = express();
 
-app.use(bodyParser.json({external: false}))
+//middleware definitions
 
-const database = {
+app.use(bodyParser.json({external: false}))
+app.use(cors())//remove referrer restrictions
+
+const database = { //Test database
     users: [
         {
             id: '123',
@@ -26,12 +30,13 @@ const database = {
     ]
 }
 
-app.get('/', (req, res) => {
+app.get('/', (req, res) => { //Client makes a get request to the root page
    res.json(database.users)
 })
 
 
 app.post('/signIn', (req, res) => {
+    //Hash test to compare original password with hashed passwd
     bcrypt.compare('apples', "$2a$10$F9ML4XSQTHE38ZXrJNuq7eyTAazvqS3iZ7OzbEcqUXM0SQmfcwgmO", function(err, res) {
         if (res) {
          console.log(res)
@@ -48,7 +53,7 @@ app.post('/signIn', (req, res) => {
 
 app.post('/register', (req, res) => {
     const {name, email, password} = req.body
-    bcrypt.hash(password, 10, function(err, hash) {
+    bcrypt.hash(password, 10, function(err, hash) {//hash password input for security
         console.log(hash)
       });
     database.users.push({
@@ -90,7 +95,7 @@ app.get(/, req res => {
 app.get('/profile/:id', (req, res) => {
     const { id } = req.params;
   
-    const user = database.users.find(u => u.id === id);
+    const user = database.users.find(u => u.id === id);//loop through database to identify same id
   
     if (user) {
       res.json(user);
@@ -103,5 +108,5 @@ app.get('/profile/:id', (req, res) => {
 
 
 app.listen(3000, () => {
-    console.log("Server started on port 3000 ");
+    console.log("Server started on port 3000 ");//listen on this port as a debug protocol
 })
