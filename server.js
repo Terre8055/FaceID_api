@@ -9,6 +9,12 @@ const app = express();
 app.use(bodyParser.json({external: false}))
 app.use(cors())//remove referrer restrictions
 
+//request logger to check incoming traffic
+app.use('/register', (req, res, next) => {
+    console.log(`${req.path} ${req.method} -${req.ip}`)
+    next()
+})
+
 const database = { //Test database
     users: [
         {
@@ -44,11 +50,12 @@ app.post('/signIn', (req, res) => {
          console.log("Enter correct password")
         }
       });
-    if(req.body.email === database.users[0].email && req.body.password === database.users[0].password){
+      const resUser = database.users.find(u => req.body.email === u.email && req.body.password === u.password)
+        if(resUser){
         res.json('Success')
-    }else{
-        res.status(400).json('error');
-    }
+        }else{
+        res.status(400).json('error'); //if  error
+     }
 })
 
 app.post('/register', (req, res) => {
