@@ -47,7 +47,7 @@ app.post('/signIn', (req, res) => {
         if (res) {
          console.log(res)
         } else {
-         console.log("Enter correct password")
+         console.log("Enter correct password") //TODO: Verify with hash
         }
       });
       const resUser = database.users.find(u => req.body.email === u.email && req.body.password === u.password)
@@ -61,13 +61,13 @@ app.post('/signIn', (req, res) => {
 app.post('/register', (req, res) => {
     const {name, email, password} = req.body
     bcrypt.hash(password, 10, function(err, hash) {//hash password input for security
-        console.log(hash)
+        console.log(hash) 
       });
     database.users.push({
             id: '123456',
             name: name,
             email: email,
-            password: password,
+            password: password, //TODO: Replace with hash 
             entries: 0,
             joined: new Date().toString()
     })
