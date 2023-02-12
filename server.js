@@ -3,6 +3,22 @@ const bodyParser = require('body-parser');
 const bcrypt = require('bcryptjs');
 const cors = require("cors");
 const app = express();
+const knex = require('knex')//require from node
+    
+const db = knex({
+    client: 'pg',
+    connection: {
+      host : '127.0.0.1',
+      port : 5432, // default port 
+      user : 'Mike',
+      password : '',
+      database : 'face-api'
+    }
+  });
+
+  db.select('*'). from ('login').then(data => {
+    console.log(data)
+  });
 
 //middleware definitions
 
@@ -42,62 +58,59 @@ app.get('/', (req, res) => { //Client makes a get request to the root page
 
 
 app.post('/signIn', (req, res) => {
-    //Hash test to compare original password with hashed passwd
-    bcrypt.compare('apples', "$2a$10$F9ML4XSQTHE38ZXrJNuq7eyTAazvqS3iZ7OzbEcqUXM0SQmfcwgmO", function(err, res) {
-        if (res) {
-         console.log(res)
-        } else {
-         console.log("Enter correct password") //TODO: Verify with hash
-        }
-      });
-      const resUser = database.users.find(u => req.body.email === u.email && req.body.password === u.password)
-        if(resUser){
-        res.json('Success')
-        }else{
-        res.status(400).json('error'); //if  error
-     }
+    /*CRUD operation: Select table of login to read table where email = req email*/
+   db.select('email', 'hash').from('login')
+   .where('email', '=', req.body.email)
+   .then(data => {
+    const isValid = bcrypt.compareSync(req.body.password, data[0].hash)
+    if(isValid){
+        return db.select('*').from('users')
+    /*CRUD operation: Select table of users to read table where email = req email*/
+        .where('email', '=', req.body.email)
+        .then(user => {
+            res.json(user[0])
+        })
+        .catch(err => res.status(400).json('unable to get user'))
+    }else{
+
+        res.status(400).json('wrong credentials')
+    }
+   })
+   .catch(err => res.status(400).json('error'))
 })
 
 app.post('/register', (req, res) => {
-    const {name, email, password} = req.body
-    bcrypt.hash(password, 10, function(err, hash) {//hash password input for security
-        console.log(hash) 
-      });
-    database.users.push({
-            id: '123456',
-            name: name,
-            email: email,
-            password: password, //TODO: Replace with hash 
-            entries: 0,
-            joined: new Date().toString()
-    })
-    res.json(database.users)
+    const {email, name, password} = req.body
+
+    const hash = bcrypt.hashSync(password)//convert passkey to a hashkey (middleware)
+        //doing multiple operations with transaction. Login user and then details reflect in the users table
+
+        db.transaction(trx => {
+            //line 87-92 => insert details from body to login table when client registers
+            trx.insert({
+                hash: hash,
+                email: email
+            })
+            .into('login')
+            .returning('email') //next block is to return the email to the users table
+            .then(loginEmail => {
+                return trx('users')
+                    .returning('*') 
+                    .insert({
+                        email: email,
+                        name: name,
+                        joined: new Date()
+                    })
+                    .then(user => {
+                        res.json(user[0])
+                    })
+                 })
+                 .then(trx.commit) //commit to save changes
+                 .catch(trx.rollback)//rollback changes if error
+            })
+            .catch (err => res.status(400).json('Unable to join'))
+        
 })
-
-/*@Getting the time when user logs in/register
-app.get(/, req res => {
-    const date = new Date()
-    req.time = date
-    next()
-    .....//
-    (req res){
-        res.json({time: req.time})
-    }
-})
-*/
-
-//getUser Id from array
-
-// app.get('/profile/:id', (req, res) => {
-//     const { id } = req.params; //dest id from param obj
-//     database.users.forEach(user => {
-//         if (user.id === id){
-//              res.json(user) continuous loop
-//         }else{
-//             res.status(404).json('User Not Found');
-//         }
-//     })
-// })
 
 app.get('/profile/:id', (req, res) => {
     const { id } = req.params;
